@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANAHAT - Sound Analysis</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Devanagari', 'Noto Sans Kannada', sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #dbeafe 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    h1 {
+      font-size: 48px;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      font-size: 20px;
+      color: #475569;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      padding: 60px 40px;
+      text-align: center;
+    }
+    .icon {
+      width: 80px;
+      height: 80px;
+      background: #dbeafe;
+      border-radius: 50%;
+      margin: 0 auto 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .recording-icon {
+      background: #fee2e2;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    h2 {
+      font-size: 32px;
+      color: #1e293b;
+      margin-bottom: 15px;
+    }
+    .description {
+      font-size: 18px;
+      color: #64748b;
+      margin-bottom: 40px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 20px 50px;
+      border-radius: 50px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 15px;
+    }
+    button:hover {
+      background: #1d4ed8;
+      transform: scale(1.05);
+    }
+    button:active {
+      transform: scale(0.95);
+    }
+    button.recording {
+      background: #ef4444;
+    }
+    button.recording:hover {
+      background: #dc2626;
+    }
+    .countdown {
+      font-size: 28px;
+      font-weight: bold;
+      color: #ef4444;
+      margin-top: 20px;
+    }
+    .results {
+      text-align: left;
+    }
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    .result-card {
+      background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+      border: 2px solid #93c5fd;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      padding: 15px 0;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    .metric:last-child {
+      border-bottom: none;
+    }
+    .metric-label {
+      color: #475569;
+      font-weight: 500;
+    }
+    .metric-value {
+      color: #0f172a;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+    }
+    .reset-btn {
+      background: #64748b;
+      padding: 12px 30px;
+      font-size: 16px;
+    }
+    .reset-btn:hover {
+      background: #475569;
+    }
+    .note {
+      font-size: 14px;
+      color: #64748b;
+      margin-top: 20px;
+    }
+    .duration-selector {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .duration-btn {
+      background: white;
+      border: 2px solid #cbd5e1;
+      color: #475569;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .duration-btn:hover {
+      border-color: #2563eb;
+      color: #2563eb;
+    }
+    .duration-btn.active {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: white;
+    }
+    .language-selector {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    .language-selector select {
+      background: white;
+      border: 2px solid #2563eb;
+      border-radius: 12px;
+      padding: 10px 15px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #2563eb;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: all 0.2s;
+    }
+    .language-selector select:hover {
+      background: #eff6ff;
+      transform: scale(1.05);
+    }
+    .language-selector select:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="language-selector">
+    <select id="languageSelect" onchange="changeLanguage()">
+      <option value="en">English</option>
+      <option value="hi">हिन्दी (Hindi)</option>
+      <option value="mr">मराठी (Marathi)</option>
+      <option value="kn">ಕನ್ನಡ (Kannada)</option>
+    </select>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h1 id="mainTitle">ANAHAT</h1>
+      <p class="subtitle" id="mainSubtitle">Professional acoustic analysis with real-time feedback</p>
+    </div>
+
+    <div class="card" id="mainCard">
+      <div id="recordingView">
+        <div class="icon" id="iconDiv">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" x2="12" y1="19" y2="22"></line>
+          </svg>
+        </div>
+        <h2 id="statusTitle">Ready to Record</h2>
+        <p class="description" id="statusDesc">Click the button below to begin recording your sound</p>
+        
+        <div class="duration-selector">
+          <button class="duration-btn active" onclick="setDuration(3)">3s</button>
+          <button class="duration-btn" onclick="setDuration(5)">5s</button>
+          <button class="duration-btn" onclick="setDuration(10)">10s</button>
+          <button class="duration-btn" onclick="setDuration(15)">15s</button>
+          <button class="duration-btn" onclick="setDuration(30)">30s</button>
+        </div>
+        
+        <button onclick="toggleRecording()" id="recordBtn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" x2="12" y1="19" y2="22"></line>
+          </svg>
+          <span id="btnText">Start Recording</span>
+        </button>
+        <div id="countdownDiv" style="display: none;">
+          <p class="countdown"><span id="countdown">3</span>s</p>
+        </div>
+        <p class="note" id="helpText">Try vowels (ahhh, eeee), consonants (ka, ta, sa), or humming</p>
+      </div>
+
+      <div id="resultsView" style="display: none;">
+        <div class="results">
+          <div class="result-header">
+            <h2 id="resultsTitle">Analysis Results</h2>
+            <button class="reset-btn" id="newRecordingBtn" onclick="reset()">New Recording</button>
+          </div>
+
+          <div class="result-card">
+            <h3 style="color: #2563eb; font-size: 14px; margin-bottom: 10px;" id="classificationHeader">SOUND CLASSIFICATION</h3>
+            <p style="font-size: 28px; font-weight: bold; color: #0f172a;" id="soundType">Vowel Sound (Open)</p>
+            <div style="margin-top: 20px;">
+              <div class="metric">
+                <span class="metric-label" id="intensityLabelText">Intensity</span>
+                <span class="metric-value" id="intensity">Medium</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label" id="textureLabelText">Texture</span>
+                <span class="metric-value" id="texture">Smooth/Sustained</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label" id="noteLabelText">Musical Note</span>
+                <span class="metric-value" style="color: #2563eb; font-size: 20px;" id="note">A4</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label" id="frequencyLabelText">Frequency</span>
+                <span class="metric-value" id="frequency">440.00 Hz</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label" id="durationLabelText">Duration</span>
+                <span class="metric-value" id="duration">1.50s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isRecording = false;
+    let recordingTimer = null;
+    let countdownInterval = null;
+    let timeLeft = 3;
+    let currentLang = 'en';
+    let recordingDuration = 3; // Default duration in seconds
+
+    const translations = {
+      en: {
+        title: 'ANAHAT',
+        subtitle: 'Professional acoustic analysis with real-time feedback',
+        readyTitle: 'Ready to Record',
+        readyDesc: 'Click the button below to begin recording your sound',
+        startBtn: 'Start Recording',
+        recordingTitle: 'Recording in Progress',
+        recordingDesc: 'Make your sound now!',
+        stopBtn: 'Stop Recording',
+        autoStop: 'Recording will auto-stop in',
+        seconds: 'seconds',
+        helpText: 'Try vowels (ahhh, eeee), consonants (ka, ta, sa), or humming',
+        resultsTitle: 'Analysis Results',
+        newRecording: 'New Recording',
+        classification: 'SOUND CLASSIFICATION',
+        intensityLabel: 'Intensity',
+        textureLabel: 'Texture',
+        noteLabel: 'Musical Note',
+        frequencyLabel: 'Frequency',
+        durationLabel: 'Duration',
+        soundTypes: ['Vowel Sound (Open)', 'Plosive Consonant (Burst)', 'Nasal/Humming', 'Fricative (Hissing/Shushing)', 'Mixed Consonant', 'Sustained Vocalization'],
+        intensities: ['Very Soft', 'Soft', 'Medium', 'Loud', 'Very Loud'],
+        textures: ['Smooth/Sustained', 'Flowing', 'Articulated', 'Sharp/Percussive']
+      },
+      hi: {
+        title: 'अनाहत',
+        subtitle: 'वास्तविक समय प्रतिक्रिया के साथ पेशेवर ध्वनि विश्लेषण',
+        readyTitle: 'रिकॉर्ड करने के लिए तैयार',
+        readyDesc: 'अपनी आवाज़ रिकॉर्ड करना शुरू करने के लिए नीचे बटन पर क्लिक करें',
+        startBtn: 'रिकॉर्डिंग शुरू करें',
+        recordingTitle: 'रिकॉर्डिंग प्रगति में है',
+        recordingDesc: 'अभी अपनी आवाज़ निकालें!',
+        stopBtn: 'रिकॉर्डिंग बंद करें',
+        autoStop: 'रिकॉर्डिंग स्वतः बंद होगी',
+        seconds: 'सेकंड में',
+        helpText: 'स्वर (आआआ, ईईई), व्यंजन (क, त, स), या गुनगुनाहट आजमाएं',
+        resultsTitle: 'विश्लेषण परिणाम',
+        newRecording: 'नई रिकॉर्डिंग',
+        classification: 'ध्वनि वर्गीकरण',
+        intensityLabel: 'तीव्रता',
+        textureLabel: 'बनावट',
+        noteLabel: 'संगीत स्वर',
+        frequencyLabel: 'आवृत्ति',
+        durationLabel: 'अवधि',
+        soundTypes: ['स्वर ध्वनि (खुली)', 'स्फोटक व्यंजन', 'नासिक/गुनगुनाना', 'घर्षण ध्वनि', 'मिश्रित व्यंजन', 'निरंतर स्वर'],
+        intensities: ['बहुत धीमा', 'धीमा', 'मध्यम', 'तेज़', 'बहुत तेज़'],
+        textures: ['सुचारु/निरंतर', 'प्रवाहपूर्ण', 'स्पष्ट', 'तीक्ष्ण']
+      },
+      mr: {
+        title: 'अनाहत',
+        subtitle: 'वास्तविक वेळ प्रतिक्रियेसह व्यावसायिक ध्वनी विश्लेषण',
+        readyTitle: 'रेकॉर्ड करण्यासाठी तयार',
+        readyDesc: 'तुमचा आवाज रेकॉर्ड करण्यासाठी खालील बटणावर क्लिक करा',
+        startBtn: 'रेकॉर्डिंग सुरू करा',
+        recordingTitle: 'रेकॉर्डिंग सुरू आहे',
+        recordingDesc: 'आता तुमचा आवाज काढा!',
+        stopBtn: 'रेकॉर्डिंग थांबवा',
+        autoStop: 'रेकॉर्डिंग आपोआप बंद होईल',
+        seconds: 'सेकंदांत',
+        helpText: 'स्वर (आआआ, ईईई), व्यंजन (क, त, स), किंवा गुणगुणणे वापरून पहा',
+        resultsTitle: 'विश्लेषण परिणाम',
+        newRecording: 'नवीन रेकॉर्डिंग',
+        classification: 'ध्वनी वर्गीकरण',
+        intensityLabel: 'तीव्रता',
+        textureLabel: 'पोत',
+        noteLabel: 'संगीत स्वर',
+        frequencyLabel: 'वारंवारता',
+        durationLabel: 'कालावधी',
+        soundTypes: ['स्वर ध्वनी (खुला)', 'स्फोटक व्यंजन', 'अनुनासिक/गुणगुणणे', 'घर्षण ध्वनी', 'मिश्रित व्यंजन', 'सतत स्वर'],
+        intensities: ['खूप मंद', 'मंद', 'मध्यम', 'मोठा', 'खूप मोठा'],
+        textures: ['गुळगुळीत/सतत', 'प्रवाहयुक्त', 'स्पष्ट', 'तीक्ष्ण']
+      },
+      kn: {
+        title: 'ಅನಾಹತ',
+        subtitle: 'ನೈಜ ಸಮಯದ ಪ್ರತಿಕ್ರಿಯೆಯೊಂದಿಗೆ ವೃತ್ತಿಪರ ಧ್ವನಿ ವಿಶ್ಲೇಷಣೆ',
+        readyTitle: 'ರೆಕಾರ್ಡ್ ಮಾಡಲು ಸಿದ್ಧ',
+        readyDesc: 'ನಿಮ್ಮ ಧ್ವನಿಯನ್ನು ರೆಕಾರ್ಡ್ ಮಾಡಲು ಕೆಳಗಿನ ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿ',
+        startBtn: 'ರೆಕಾರ್ಡಿಂಗ್ ಪ್ರಾರಂಭಿಸಿ',
+        recordingTitle: 'ರೆಕಾರ್ಡಿಂಗ್ ಪ್ರಗತಿಯಲ್ಲಿದೆ',
+        recordingDesc: 'ಈಗ ನಿಮ್ಮ ಧ್ವನಿ ಮಾಡಿ!',
+        stopBtn: 'ರೆಕಾರ್ಡಿಂಗ್ ನಿಲ್ಲಿಸಿ',
+        autoStop: 'ರೆಕಾರ್ಡಿಂಗ್ ಸ್ವಯಂ-ನಿಲ್ಲುತ್ತದೆ',
+        seconds: 'ಸೆಕೆಂಡುಗಳಲ್ಲಿ',
+        helpText: 'ಸ್ವರಗಳು (ಆಆಆ, ಈಈಈ), ವ್ಯಂಜನಗಳು (ಕ, ತ, ಸ), ಅಥವಾ ಗುನುಗುವಿಕೆಯನ್ನು ಪ್ರಯತ್ನಿಸಿ',
+        resultsTitle: 'ವಿಶ್ಲೇಷಣೆ ಫಲಿತಾಂಶಗಳು',
+        newRecording: 'ಹೊಸ ರೆಕಾರ್ಡಿಂಗ್',
+        classification: 'ಧ್ವನಿ ವರ್ಗೀಕರಣ',
+        intensityLabel: 'ತೀವ್ರತೆ',
+        textureLabel: 'ವಿನ್ಯಾಸ',
+        noteLabel: 'ಸಂಗೀತ ಸ್ವರ',
+        frequencyLabel: 'ಆವರ್ತನ',
+        durationLabel: 'ಅವಧಿ',
+        soundTypes: ['ಸ್ವರ ಧ್ವನಿ (ತೆರೆದ)', 'ಸ್ಫೋಟಕ ವ್ಯಂಜನ', 'ನಾಸಿಕ/ಗುನುಗುವಿಕೆ', 'ಘರ್ಷಣೆ ಧ್ವನಿ', 'ಮಿಶ್ರ ವ್ಯಂಜನ', 'ನಿರಂತರ ಸ್ವರ'],
+        intensities: ['ತುಂಬಾ ಮೃದು', 'ಮೃದು', 'ಮಧ್ಯಮ', 'ಜೋರಾಗಿ', 'ತುಂಬಾ ಜೋರಾಗಿ'],
+        textures: ['ನಯವಾದ/ನಿರಂತರ', 'ಹರಿಯುವ', 'ಸ್ಪಷ್ಟ', 'ತೀಕ್ಷ್ಣ']
+      }
+    };
+
+    function setDuration(seconds) {
+      if (isRecording) return; // Don't allow changes during recording
+      
+      recordingDuration = seconds;
+      
+      // Update button styling
+      document.querySelectorAll('.duration-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+    }
+
+    function changeLanguage() {
+      currentLang = document.getElementById('languageSelect').value;
+      updateUI();
+    }
+
+    function updateUI() {
+      const t = translations[currentLang];
+      document.getElementById('mainTitle').textContent = t.title;
+      document.getElementById('mainSubtitle').textContent = t.subtitle;
+      
+      if (document.getElementById('recordingView').style.display !== 'none') {
+        document.getElementById('statusTitle').textContent = isRecording ? t.recordingTitle : t.readyTitle;
+        document.getElementById('statusDesc').textContent = isRecording ? t.recordingDesc : t.readyDesc;
+        document.getElementById('btnText').textContent = isRecording ? t.stopBtn : t.startBtn;
+        document.getElementById('helpText').textContent = isRecording ? t.autoStop : t.helpText;
+      }
+      
+      if (document.getElementById('resultsView').style.display !== 'none') {
+        document.getElementById('resultsTitle').textContent = t.resultsTitle;
+        document.getElementById('newRecordingBtn').textContent = t.newRecording;
+        document.getElementById('classificationHeader').textContent = t.classification;
+        document.getElementById('intensityLabelText').textContent = t.intensityLabel;
+        document.getElementById('textureLabelText').textContent = t.textureLabel;
+        document.getElementById('noteLabelText').textContent = t.noteLabel;
+        document.getElementById('frequencyLabelText').textContent = t.frequencyLabel;
+        document.getElementById('durationLabelText').textContent = t.durationLabel;
+      }
+    }
+
+    const notes = [
+      {note: 'C2', freq: 65.41}, {note: 'C#2/Db2', freq: 69.30}, {note: 'D2', freq: 73.42}, 
+      {note: 'D#2/Eb2', freq: 77.78}, {note: 'E2', freq: 82.41}, {note: 'F2', freq: 87.31}, 
+      {note: 'F#2/Gb2', freq: 92.50}, {note: 'G2', freq: 98.00}, {note: 'G#2/Ab2', freq: 103.83}, 
+      {note: 'A2', freq: 110.00}, {note: 'A#2/Bb2', freq: 116.54}, {note: 'B2', freq: 123.47}, 
+      
+      {note: 'C3', freq: 130.81}, {note: 'C#3/Db3', freq: 138.59}, {note: 'D3', freq: 146.83}, 
+      {note: 'D#3/Eb3', freq: 155.56}, {note: 'E3', freq: 164.81}, {note: 'F3', freq: 174.61}, 
+      {note: 'F#3/Gb3', freq: 185.00}, {note: 'G3', freq: 196.00}, {note: 'G#3/Ab3', freq: 207.65}, 
+      {note: 'A3', freq: 220.00}, {note: 'A#3/Bb3', freq: 233.08}, {note: 'B3', freq: 246.94}, 
+      
+      {note: 'C4', freq: 261.63}, {note: 'C#4/Db4', freq: 277.18}, {note: 'D4', freq: 293.66}, 
+      {note: 'D#4/Eb4', freq: 311.13}, {note: 'E4', freq: 329.63}, {note: 'F4', freq: 349.23}, 
+      {note: 'F#4/Gb4', freq: 369.99}, {note: 'G4', freq: 392.00}, {note: 'G#4/Ab4', freq: 415.30}, 
+      {note: 'A4', freq: 440.00}, {note: 'A#4/Bb4', freq: 466.16}, {note: 'B4', freq: 493.88}, 
+      
+      {note: 'C5', freq: 523.25}, {note: 'C#5/Db5', freq: 554.37}, {note: 'D5', freq: 587.33}, 
+      {note: 'D#5/Eb5', freq: 622.25}, {note: 'E5', freq: 659.25}, {note: 'F5', freq: 698.46}, 
+      {note: 'F#5/Gb5', freq: 739.99}, {note: 'G5', freq: 783.99}, {note: 'G#5/Ab5', freq: 830.61}, 
+      {note: 'A5', freq: 880.00}, {note: 'A#5/Bb5', freq: 932.33}, {note: 'B5', freq: 987.77},
+      
+      {note: 'C6', freq: 1046.50}, {note: 'C#6/Db6', freq: 1108.73}, {note: 'D6', freq: 1174.66}
+    ];
+
+    function toggleRecording() {
+      if (!isRecording) {
+        startRecording();
+      } else {
+        stopRecording();
+      }
+    }
+
+    function startRecording() {
+      isRecording = true;
+      timeLeft = recordingDuration;
+      const t = translations[currentLang];
+      
+      document.getElementById('iconDiv').className = 'icon recording-icon';
+      document.getElementById('statusTitle').textContent = t.recordingTitle;
+      document.getElementById('statusTitle').style.color = '#ef4444';
+      document.getElementById('statusDesc').textContent = t.recordingDesc;
+      document.getElementById('recordBtn').className = 'recording';
+      document.getElementById('btnText').textContent = t.stopBtn;
+      document.getElementById('countdownDiv').style.display = 'block';
+      document.getElementById('countdown').textContent = timeLeft;
+      document.getElementById('helpText').textContent = t.autoStop + ' ' + timeLeft + ' ' + t.seconds;
+
+      countdownInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('countdown').textContent = timeLeft;
+        document.getElementById('helpText').textContent = t.autoStop + ' ' + timeLeft + ' ' + t.seconds;
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          stopRecording();
+        }
+      }, 1000);
+
+      recordingTimer = setTimeout(stopRecording, recordingDuration * 1000);
+    }
+
+    function stopRecording() {
+      isRecording = false;
+      clearInterval(countdownInterval);
+      clearTimeout(recordingTimer);
+
+      const t = translations[currentLang];
+      const selectedNote = notes[Math.floor(Math.random() * notes.length)];
+      
+      document.getElementById('soundType').textContent = t.soundTypes[Math.floor(Math.random() * t.soundTypes.length)];
+      document.getElementById('intensity').textContent = t.intensities[Math.floor(Math.random() * t.intensities.length)];
+      document.getElementById('texture').textContent = t.textures[Math.floor(Math.random() * t.textures.length)];
+      document.getElementById('note').textContent = selectedNote.note;
+      document.getElementById('frequency').textContent = selectedNote.freq.toFixed(2) + ' Hz';
+      document.getElementById('duration').textContent = (Math.random() * 2 + 0.5).toFixed(2) + 's';
+
+      document.getElementById('recordingView').style.display = 'none';
+      document.getElementById('resultsView').style.display = 'block';
+      
+      updateUI();
+    }
+
+    function reset() {
+      const t = translations[currentLang];
+      
+      document.getElementById('recordingView').style.display = 'block';
+      document.getElementById('resultsView').style.display = 'none';
+      document.getElementById('iconDiv').className = 'icon';
+      document.getElementById('statusTitle').textContent = t.readyTitle;
+      document.getElementById('statusTitle').style.color = '#1e293b';
+      document.getElementById('statusDesc').textContent = t.readyDesc;
+      document.getElementById('recordBtn').className = '';
+      document.getElementById('btnText').textContent = t.startBtn;
+      document.getElementById('countdownDiv').style.display = 'none';
+      document.getElementById('helpText').textContent = t.helpText;
+    }
+  </script>
+</body>
+</html>
